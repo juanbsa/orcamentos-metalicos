@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  COMERCIAL
+}
+
+enum CustomerType {
+  FISICA
+  JURIDICA
+}
+
+enum QuoteStatus {
+  ELABORACAO
+  ENVIADO
+  AGUARDANDO
+  APROVADO
+  REPROVADO
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole @default(COMERCIAL)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  quotes    Quote[]
+  audits    Audit[]
+}
+
+model Customer {
+  id              String       @id @default(cuid())
+  type            CustomerType
+  name            String
+  fantasyName     String?
+  cpf             String?      @unique
+  cnpj            String?      @unique
+  phone           String
+  email           String?
+  responsible     String?
+  street          String?
+  number          String?
+  complement      String?
+  district        String?
+  city            String?
+  state           String?
+  zipCode         String?
+  active          Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  quotes          Quote[]
+}
+
+model MaterialCategory {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  createdAt DateTime   @default(now())
+  materials Material[]
+}
+
+model Material {
+  id             String           @id @default(cuid())
+  code           String           @unique
+  name           String
+  categoryId     String
+  category       MaterialCategory @relation(fields: [categoryId], references: [id])
+  side1          Float?
+  side2          Float?
+  thickness      Float?
+  specificWeight Float?
+  linearWeight   Float
+  active         Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  quoteItems     QuoteItem[]
+  templateItems  TemplateItem[]
+}
+
+model Expense {
+  id           String        @id @default(cuid())
+  name         String
+  defaultValue Float
+  active       Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  quoteExpenses QuoteExpense[]
+}
+
+model Template {
+  id        String         @id @default(cuid())
+  name      String
+  active    Boolean        @default(true)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  items     TemplateItem[]
+}
+
+model TemplateItem {
+  id         String   @id @default(cuid())
+  templateId String
+  template   Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  materialId String
+  material   Material @relation(fields: [materialId], references: [id])
+  meters     Float    @default(1)
+}
+
+model Quote {
+  id              String        @id @default(cuid())
+  number          Int           @unique @default(autoincrement())
+  customerId      String
+  customer        Customer      @relation(fields: [customerId], references: [id])
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  status          QuoteStatus   @default(ELABORACAO)
+  wastePercent    Float         @default(5)
+  pricePerKg      Float         @default(35)
+  profitType      String        @default("MULTIPLIER")
+  profitValue     Float         @default(3)
+  totalMaterials  Float         @default(0)
+  totalExpenses   Float         @default(0)
+  subtotal        Float         @default(0)
+  profitAmount    Float         @default(0)
+  total           Float         @default(0)
+  validity        Int           @default(30)
+  observations    String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  items           QuoteItem[]
+  expenses        QuoteExpense[]
+}
+
+model QuoteItem {
+  id             String   @id @default(cuid())
+  quoteId        String
+  quote          Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  materialId     String
+  material       Material @relation(fields: [materialId], references: [id])
+  meters         Float
+  totalWeight    Float
+  weightWithWaste Float
+  unitValue      Float
+  totalValue     Float
+  createdAt      DateTime @default(now())
+}
+
+model QuoteExpense {
+  id        String   @id @default(cuid())
+  quoteId   String
+  quote     Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  expenseId String
+  expense   Expense  @relation(fields: [expenseId], references: [id])
+  value     Float
+  createdAt DateTime @default(now())
+}
+
+model Audit {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now())
+}
