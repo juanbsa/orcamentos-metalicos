@@ -2,11 +2,19 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import * as express from 'express';
+
+const server = express();
+let initialized = false;
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  if (initialized) return;
+  initialized = true;
 
-  app.enableCors({ origin: '*' });
+  const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
+
+  app.enableCors({ origin: process.env.FRONTEND_URL || '*' });
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
 
@@ -19,7 +27,20 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  await app.listen(process.env.PORT || 3001);
-  console.log(`Backend rodando em http://localhost:${process.env.PORT || 3001}`);
+  await app.init();
 }
-bootstrap();
+
+// Handler exportado para o Vercel (serverless)
+export default async (req: express.Request, res: express.Response) => {
+  await bootstrap();
+  server(req, res);
+};
+
+// Desenvolvimento local
+if (!process.env.VERCEL) {
+  bootstrap().then(() => {
+    server.listen(process.env.PORT || 3001, () => {
+      console.log(`Backend rodando em http://localhost:${process.env.PORT || 3001}`);
+    });
+  });
+}
