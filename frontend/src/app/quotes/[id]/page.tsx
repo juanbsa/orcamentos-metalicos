@@ -16,8 +16,7 @@ export default function QuoteDetailPage() {
   }, [id]);
 
   const openPdf = () => {
-    const token = localStorage.getItem('token');
-    window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/pdf/quote/${id}?token=${token}`, '_blank');
+    window.open(`/quotes/${id}/print`, '_blank');
   };
 
   const duplicate = async () => {
