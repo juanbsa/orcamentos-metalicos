@@ -26,18 +26,28 @@ export class PdfService {
 
     if (!quote) throw new NotFoundException('Orçamento não encontrado');
 
-    // Importar pdfmake de forma compatível com CommonJS no Node.js
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const PdfPrinter = require('pdfmake');
+
+    // pdfmake 0.2.x usa `this.pdfMake.vfs` que em serverless pode cair em window ou global
+    if (typeof (global as any).window === 'undefined') {
+      (global as any).window = {};
+    }
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const vfsFonts = require('pdfmake/build/vfs_fonts');
+    const vfsData =
+      vfsFonts?.pdfMake?.vfs ||
+      (global as any).window?.pdfMake?.vfs ||
+      (global as any).pdfMake?.vfs;
+
+    if (!vfsData) throw new Error('pdfmake vfs_fonts não carregou');
 
     const fonts = {
       Roboto: {
-        normal: Buffer.from(vfsFonts.pdfMake.vfs['Roboto-Regular.ttf'], 'base64'),
-        bold: Buffer.from(vfsFonts.pdfMake.vfs['Roboto-Medium.ttf'], 'base64'),
-        italics: Buffer.from(vfsFonts.pdfMake.vfs['Roboto-Italic.ttf'], 'base64'),
-        bolditalics: Buffer.from(vfsFonts.pdfMake.vfs['Roboto-MediumItalic.ttf'], 'base64'),
+        normal: Buffer.from(vfsData['Roboto-Regular.ttf'], 'base64'),
+        bold: Buffer.from(vfsData['Roboto-Medium.ttf'], 'base64'),
+        italics: Buffer.from(vfsData['Roboto-Italic.ttf'], 'base64'),
+        bolditalics: Buffer.from(vfsData['Roboto-MediumItalic.ttf'], 'base64'),
       },
     };
 
