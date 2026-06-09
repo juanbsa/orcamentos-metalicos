@@ -28,17 +28,27 @@ export class PdfService {
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const PdfPrinter = require('pdfmake');
-
-    // pdfmake 0.2.x usa `this.pdfMake.vfs` que em serverless pode cair em window ou global
-    if (typeof (global as any).window === 'undefined') {
-      (global as any).window = {};
-    }
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const vfsFonts = require('pdfmake/build/vfs_fonts');
-    const vfsData =
-      vfsFonts?.pdfMake?.vfs ||
-      (global as any).window?.pdfMake?.vfs ||
-      (global as any).pdfMake?.vfs;
+    const fs = require('fs');
+
+    // vfs_fonts.js usa `this.pdfMake.vfs = ...` — em serverless `this` pode ser undefined.
+    // Executar via new Function com contexto explícito garante que `this` seja nosso objeto.
+    let vfsData: Record<string, string> | undefined;
+    try {
+      const vfsFontsPath = require.resolve('pdfmake/build/vfs_fonts');
+      const vfsCode = fs.readFileSync(vfsFontsPath, 'utf8');
+      const ctx: any = {};
+      // eslint-disable-next-line no-new-func
+      new Function(vfsCode).call(ctx);
+      vfsData = ctx.pdfMake?.vfs;
+    } catch (_e1) {
+      try {
+        // fallback: require direto (funciona em alguns ambientes)
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const vfsFonts = require('pdfmake/build/vfs_fonts');
+        vfsData = vfsFonts?.pdfMake?.vfs || (global as any).pdfMake?.vfs;
+      } catch (_e2) { /* ignorar */ }
+    }
 
     if (!vfsData) throw new Error('pdfmake vfs_fonts não carregou');
 
