@@ -3,6 +3,7 @@ import { ReactNode, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
+import Image from 'next/image';
 import clsx from 'clsx';
 
 const navItems = [
@@ -27,9 +28,15 @@ export default function Layout({ children }: { children: ReactNode }) {
         'fixed inset-y-0 left-0 z-50 w-64 bg-primary-900 text-white flex flex-col transition-transform duration-200',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       )}>
-        <div className="p-5 border-b border-primary-800">
-          <h1 className="text-lg font-bold">⚙️ Orçamentos</h1>
-          <p className="text-xs text-primary-300 mt-0.5">Estruturas Metálicas</p>
+        <div className="p-4 border-b border-gray-700 flex items-center justify-center">
+          <Image
+            src="/logo.png"
+            alt="Grupo Araújo"
+            width={160}
+            height={56}
+            style={{ objectFit: 'contain' }}
+            priority
+          />
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
